@@ -14,7 +14,7 @@
   const CAM_DIST = 4.0;
   const PIVOT_Y = 0.2;
   const NUM_HEARTS = 18;
-  const MESSAGE = "for you <3";
+  const MESSAGE = "Hi Poohla :3";
   const BG = "#060a14";
   // JetBrains Mono ships in /fonts and is loaded before the first frame, so
   // every phone draws the same glyph shapes. The rest is only a fallback.
