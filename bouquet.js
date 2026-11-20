@@ -5,7 +5,7 @@
   "use strict";
 
   // ---------------------------------------------------------------- config
-  const FPS = 30;
+  const FPS = 60;
   const SPIN_SPEED = 0.22;      // rad/s, the slow resting spin (was 0.6)
   const PETAL_SPIN = 0.35;      // how fast petals twist relative to the bouquet
   const SPIN_BOOST = 1.2;       // extra radians spent during the opening (eases out)
@@ -20,10 +20,10 @@
   // every phone draws the same glyph shapes. The rest is only a fallback.
   const FONT_FAMILY = '"JetBrains Mono", ui-monospace, Menlo, Consolas, "Courier New", monospace';
   const FONT_WEIGHT = 500;
-  const COLS_PORTRAIT = 84;     // character columns on a phone held upright
+  const COLS_PORTRAIT = 104;     // character columns on a phone held upright
   const ROWS_LANDSCAPE = 48;    // character rows when the screen is wider than tall
   const LINE = 1.2;             // cell height as a multiple of font size
-  const BLOOM_END = 6.0;        // seconds until the bloom is fully done
+  const BLOOM_END = 8.0;        // seconds until the bloom is fully done
 
   // ------------------------------------------------------ palettes (dark -> light)
   const ICE      = ["#8fb8d8", "#b5d4ea", "#d4e8f5", "#e8f3fb", "#f4faff", "#ffffff"];
