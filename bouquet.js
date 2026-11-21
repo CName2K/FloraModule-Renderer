@@ -6,15 +6,28 @@
 
   // ---------------------------------------------------------------- config
   const FPS = 60;
-  const SPIN_SPEED = 0.22;      // rad/s, the slow resting spin (was 0.6)
+  const SPIN_SPEED = 0.14;      // rad/s, the slow resting spin (was 0.6, then 0.22)
   const PETAL_SPIN = 0.35;      // how fast petals twist relative to the bouquet
   const SPIN_BOOST = 1.2;       // extra radians spent during the opening (eases out)
   const SPIN_BOOST_TAU = 2.0;   // seconds for the boost to fade
   const TILT = 0.30;
   const CAM_DIST = 4.0;
   const PIVOT_Y = 0.2;
-  const NUM_HEARTS = 18;
-  const MESSAGE = "A little something for ya :3";
+  // ---- TEXT ON SCREEN -------------------------------------------------------
+  // Add, remove or edit entries. Each one:
+  //   text   plain ASCII only. Use "\n" for a second line (keep lines under ~40 chars)
+  //   place  "under"  = right below the cat (follows the bouquet)   -> uses gap
+  //          "screen" = fixed spot on the screen                    -> uses y
+  //   gap    (under)  blank rows between the cat's feet and the text (default 2)
+  //   y      (screen) 0 = very top, 1 = very bottom
+  //   start  seconds after the page opens before it begins typing
+  //   speed  characters typed per second
+  //   color  "shimmer" (animated blues) or any hex like "#ffd1e8"
+  const TEXTS = [
+    { text: "A little something for ya :3", place: "under", gap: 2, start: 3.8, speed: 10, color: "shimmer" },
+    // { text: "happy birthday!", place: "screen", y: 0.05, start: 5.5, speed: 12, color: "#ffd1e8" },
+  ];
+  const CAT_START = 0.5;        // seconds before the kaomoji cat starts popping in
   const BG = "#060a14";
   // JetBrains Mono ships in /fonts and is loaded before the first frame, so
   // every phone draws the same glyph shapes. The rest is only a fallback.
@@ -30,14 +43,14 @@
   const PALE     = ["#5f8fb8", "#7eaed4", "#9cc6e6", "#b8d9f2", "#d0e8fa", "#e6f4ff"];
   const SKY      = ["#2f7fc0", "#4a9be0", "#6db4ee", "#8fcbf6", "#a9dbfb", "#c4e8ff"];
   const ROYAL    = ["#0f2a8a", "#1a3fb8", "#2557e0", "#3d75f5", "#6a95ff", "#93b3ff"];
-  const PERI     = ["#4b3fa0", "#6a5ad0", "#8578ec", "#9d94f5", "#b6b0fb", "#cfcaff"];
+  const PERI     = ["#0f5f86", "#1a7fae", "#2a9bc9", "#4fb6de", "#7fd0ee", "#b0e6f8"];
   const CORN     = ["#2a4a9a", "#3f63c4", "#5b82e0", "#6495ed", "#86aef5", "#a8c7fb"];
   const NAVY     = ["#16286e", "#20389a", "#2c4cc0", "#3f63e0", "#5a85ee", "#7ea4fa"];
   const GOLD_CENTER = ["#8a6a1a", "#b8902a", "#e0b440", "#f2cc5a", "#ffe08a"];
   const DARK_CENTER = ["#3b2a1a", "#5a3f22", "#7a5530", "#9a6f40", "#b88a55"];
   const GREENS = ["#0f3d1e", "#165c2c", "#1f7a38", "#2a9445", "#3fae5a", "#6cc984", "#9be0ae"];
-  const PAPER  = ["#6b6558", "#9a937f", "#c9c2ac", "#e4ddc8", "#f3eedc", "#fffaf0"];
-  const RIBBON = ["#5a6370", "#808a98", "#a8b2c0", "#c8d0dc", "#e2e8f0", "#ffffff"];
+  const PAPER  = ["#3d2a1a", "#5e4129", "#85603c", "#a67c52", "#c49a6c", "#dcb98a"];
+  const RIBBON = ["#1a3a8a", "#2457c9", "#3d75f5", "#5b94ff", "#8cb6ff", "#c4dcff"];
   const HEART_COLORS = ["#4a9be0", "#6db4ee", "#8fcbf6", "#a9dbfb", "#c4e8ff", "#ffffff"];
   const MSG_COLORS = ["#4a9be0", "#6db4ee", "#8fcbf6", "#c4e8ff", "#ffffff", "#c4e8ff", "#8fcbf6", "#6db4ee"];
   const BABY_BRIGHT = "#ffffff", BABY_DIM = "#c4d4ea";
@@ -88,6 +101,53 @@
   }
   function add(p, d, k) {
     return [p[0] + d[0] * k, p[1] + d[1] * k, p[2] + d[2] * k];
+  }
+
+  // ---------------------------------------------------------- kaomoji cat
+  // Flat ASCII line art, drawn on top of the 3D scene, gripping the stems.
+  // 29 x 12 characters; column 14 is the centre. Edit the strings in
+  // catRows() to redraw it. Poses change 3 times a second.
+  const CAT_W = 29, CAT_H = 12;
+  const CAT_SHIM = ["#ffd1e8", "#ffe6f2", "#ffffff", "#d4ecff", "#a9dbfb", "#8fcbf6", "#a9dbfb", "#d4ecff", "#ffffff", "#ffe6f2"];
+
+  function catRows(t) {
+    const beat = Math.floor(t * 3) % 3;
+    const blink = t % 3.4 > 3.25;
+    const e = blink ? "-" : "o";
+    const g = Array.from({ length: CAT_H }, () => Array(CAT_W).fill(" "));
+    const put = (r, c, str) => {
+      for (let i = 0; i < str.length; i++) if (c + i >= 0 && c + i < CAT_W) g[r][c + i] = str[i];
+    };
+    put(0, 13, "(|)");                                        // paws gripping the stems
+    put(1, 10, ".-'");  put(1, 16, "'-.");                    // rounded arms: curve out from the paws,
+    put(2, 8, ".'");    put(2, 19, "'.");
+    put(3, 7, "(");     put(3, 21, ")");                      // bulge round the sides,
+    put(4, 6, "(");     put(4, 22, ")");
+    put(5, 6, "(");     put(5, 22, ")");
+    put(6, 7, "(");     put(6, 21, ")");
+    put(7, 8, "'.");    put(7, 19, ".'");                     // and tuck into the shoulders
+    put(4, 11, "/\\___/\\");                                   // ears
+    put(5, 10, "(  " + e + "w" + e + "  )");                  // face: owo
+    put(6, 11, "\\_____/");
+    put(8, 10, "("); put(8, 18, ")"); put(9, 10, "("); put(9, 18, ")");  // body
+    put(9, 13, "<3");
+    put(10, 11, "\\_____/");
+    const f = [[11, 15], [10, 16], [12, 14]][beat];           // feet shuffle
+    put(11, f[0], "(_)"); put(11, f[1], "(_)");
+    put(9, 19, ["~~", "--", "~'"][beat]);                     // tail
+    if (beat === 1) { put(5, 2, "(("); put(5, 25, "))"); }    // wiggle marks
+    if (beat === 2) { put(5, 3, "(");  put(5, 25, ")"); }
+    return g.map((r) => r.join(""));
+  }
+
+  function catColor(r, c, ch, t) {
+    if (r === 0) return ch === "|" ? "#6cc984" : "#ffb3d1";
+    if (r === 5 && c >= 13 && c <= 15) return ch === "w" ? "#ff9ec4" : "#ffd27a";
+    if (r === 9 && c >= 13 && c <= 14) return "#ff8fb8";
+    if (r === 9 && c >= 19) return "#ffd1e8";
+    if (r >= 4 && r <= 6 && (c <= 4 || c >= 24)) return "#8fcbf6";
+    const n = CAT_SHIM.length;
+    return CAT_SHIM[(((c + r * 2 - Math.floor(t * 8)) % n) + n) % n];
   }
 
   // ------------------------------------------------------------ scene build
@@ -260,23 +320,62 @@
     return { pts, groups, flowers, babies, sparkles, neck, stemGroups };
   }
 
-  // --------------------------------------------------------------- hearts
-  let hearts = [];
-  function updateHearts(dt) {
-    while (hearts.length < NUM_HEARTS) {
-      hearts.push({
-        x: Math.random(), y: 1.0 + Math.random(), sp: 0.03 + Math.random() * 0.05,
-        phase: Math.random() * 6.28, color: HEART_COLORS[(Math.random() * HEART_COLORS.length) | 0],
-      });
-    }
-    for (const h of hearts) {
-      h.y -= h.sp * dt;
-      if (h.y < 0) {
-        h.x = Math.random(); h.y = 1.0;
-        h.color = HEART_COLORS[(Math.random() * HEART_COLORS.length) | 0];
+  // ------------------------------------------------------------- particles
+  // Floating decorations that drift up behind the bouquet: hearts in three
+  // sizes, stars, bubbles, little flowers and petals. Edit PARTICLE_KINDS to
+  // add, remove or resize kinds:
+  //   n       how many of this kind
+  //   art     rows of ASCII (spaces are transparent)
+  //   colors  palette it picks from
+  //   speed   [min, max] screen heights per second, rising
+  //   sway    sideways wobble, as a fraction of the screen width
+  //   twinkle true = cycles through its colours
+  const PINKS = ["#ff8fb8", "#ffa6c9", "#ffc2dc", "#ffd9e8"];
+  const GOLDS = ["#ffd27a", "#ffe08a", "#fff0b8", "#ffffff"];
+  const CYANS = ["#8fcbf6", "#a9dbfb", "#c4e8ff", "#ffffff"];
+  const BIG_HEART = [" _   _ ", "( \\ / )", " \\   / ", "  \\ /  ", "   v   "];
+  const MID_HEART = ["/\\/\\", "\\  /", " \\/ "];
+  const BURST = [" + ", "+*+", " + "];
+  const PARTICLE_KINDS = [
+    { n: 3,  art: BIG_HEART, colors: PINKS, speed: [0.022, 0.034], sway: 0.020 },
+    { n: 5,  art: MID_HEART, colors: PINKS.concat(HEART_COLORS), speed: [0.028, 0.045], sway: 0.016 },
+    { n: 10, art: ["<3"], colors: HEART_COLORS.concat(PINKS), speed: [0.030, 0.070], sway: 0.012 },
+    { n: 4,  art: BURST, colors: GOLDS, speed: [0.020, 0.040], sway: 0.010, twinkle: true },
+    { n: 9,  art: ["*"], colors: GOLDS, speed: [0.020, 0.050], sway: 0.010, twinkle: true },
+    { n: 7,  art: ["+"], colors: CYANS, speed: [0.025, 0.055], sway: 0.012, twinkle: true },
+    { n: 5,  art: ["x"], colors: PINKS, speed: [0.025, 0.050], sway: 0.012, twinkle: true },
+    { n: 8,  art: ["o"], colors: CYANS, speed: [0.030, 0.060], sway: 0.020 },
+    { n: 4,  art: ["O"], colors: CYANS, speed: [0.025, 0.045], sway: 0.022 },
+    { n: 5,  art: ["(@)"], colors: PINKS, speed: [0.025, 0.045], sway: 0.018 },
+    { n: 8,  art: ["~"], colors: ["#ffd9e8", "#c4e8ff", "#ffffff"], speed: [0.035, 0.065], sway: 0.030 },
+    { n: 6,  art: ["."], colors: GOLDS.concat(CYANS), speed: [0.020, 0.060], sway: 0.010 },
+  ];
+
+  let particles = [];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  function resetParticles() {
+    particles = [];
+    for (const k of PARTICLE_KINDS) {
+      for (let i = 0; i < k.n; i++) {
+        particles.push({
+          k, x: Math.random(), y: rnd(0, 1.15), sp: rnd(k.speed[0], k.speed[1]),
+          phase: rnd(0, 6.28), ci: (Math.random() * k.colors.length) | 0,
+          appear: rnd(3.0, 9.0), // they fade in over a few seconds, after the bloom starts
+        });
       }
     }
   }
+  function updateParticles(dt) {
+    for (const p of particles) {
+      p.y -= p.sp * dt;
+      if (p.y < -0.12) {
+        p.y = 1.1 + Math.random() * 0.1;
+        p.x = Math.random();
+        p.ci = (Math.random() * p.k.colors.length) | 0;
+      }
+    }
+  }
+  resetParticles();
 
   // ------------------------------------------------------- canvas + layout
   const wrap = document.getElementById("wrap");
@@ -320,14 +419,20 @@
     const aspect = cellH / cellW;
 
     // Fit the bouquet inside the grid with a small margin on every side.
-    const scale = Math.max(1.0, Math.min((viewRows - 3) / 1.45, (cols - 4) / (1.45 * aspect)));
-    const spare = Math.max(0, viewRows - 2 - 1.45 * scale);
+    // (the third limit keeps room below the bouquet for the cat and the text)
+    const scale = Math.max(1.0, Math.min((viewRows - 3) / 1.45, (cols - 4) / (1.45 * aspect),
+      (viewRows - 2 - CAT_H - 3) / 1.35));
+    const stack = 1.35 * scale + CAT_H + 3;           // bouquet + cat + text, in rows
+    const top = Math.max(1, (viewRows - stack) / 2);  // centre the whole stack
+    const cyv = top + 0.78 * scale;
 
     L = {
       W, H, cols, rows, viewRows, cellW, cellH, fs, scale,
       sx: scale * aspect,
       cx: cols / 2,
-      cy: 1 + 0.78 * scale + spare / 2,
+      cy: cyv,
+      handRow: Math.round(cyv + 0.56 * scale),         // where the stems end: the cat grips here
+      handCol: Math.round(cols / 2),
     };
 
     const n = cols * rows;
@@ -375,13 +480,19 @@
       }
     }
 
-    // hearts (after the bloom)
-    if (t > 3.5) {
-      for (const h of hearts) {
-        const col = Math.floor((h.x + 0.015 * Math.sin(t * 1.2 + h.phase)) * cols);
-        const row = Math.floor(h.y * viewRows);
-        plot(col, row, -50, "<", h.color);
-        plot(col + 1, row, -50, "3", h.color);
+    // floating particles (drawn behind everything else)
+    for (const p of particles) {
+      if (t < p.appear) continue;
+      const art = p.k.art, colN = p.k.colors.length;
+      const ci = p.k.twinkle
+        ? Math.min(colN - 1, Math.floor((Math.sin(t * 3 + p.phase) * 0.5 + 0.5) * colN))
+        : p.ci;
+      const c0 = Math.floor((p.x + p.k.sway * Math.sin(t * 0.9 + p.phase)) * cols - art[0].length / 2);
+      const r0 = Math.floor(p.y * viewRows - art.length / 2);
+      for (let r = 0; r < art.length; r++) {
+        for (let c = 0; c < art[r].length; c++) {
+          if (art[r][c] !== " ") plot(c0 + c, r0 + r, -50, art[r][c], p.k.colors[ci]);
+        }
       }
     }
 
@@ -483,15 +594,69 @@
       }
     }
 
-    // message (typewriter)
-    const shown = Math.min(MESSAGE.length, Math.max(0, Math.floor((t - 3.8) * 10)));
-    const mStart = Math.max(0, Math.floor((cols - MESSAGE.length) / 2));
-    const shift = Math.floor(t * 6);
-    for (let i = 0; i < shown; i++) {
-      if (mStart + i < cols) {
-        const idx = (rows - 2) * cols + mStart + i;
-        chars[idx] = MESSAGE[i];
-        colors[idx] = MSG_COLORS[(i + shift) % MSG_COLORS.length];
+    // kaomoji cat: pops in row by row, interior cleared so the bouquet doesn't show through
+    {
+      const sp = catRows(t);
+      const left = L.handCol - 14, topRow = L.handRow;
+      for (let r = 0; r < CAT_H; r++) {
+        if (t < CAT_START + r * 0.08) continue;
+        const line = sp[r];
+        const first = line.search(/\S/), lastc = line.search(/\S\s*$/);
+        if (first < 0) continue;
+        const row = topRow + r;
+        if (row < 0 || row >= rows) continue;
+        for (let c = first; c <= lastc; c++) {
+          const col = left + c;
+          if (col < 0 || col >= cols) continue;
+          const idx = row * cols + col;
+          const ch = line[c];
+          chars[idx] = ch;
+          colors[idx] = ch === " " ? null : catColor(r, c, ch, t);
+        }
+      }
+      // sparkles orbiting the cat (only on empty cells): mixed glyphs and colours
+      if (t > 3) {
+        const FAM = [["*", "+", "."], ["x", "+", "'"], ["o", "*", "."], ["+", ".", "'"]];
+        const SPC = ["#ffe08a", "#ffd1e8", "#c4e8ff", "#ffffff"];
+        const ccx = left + 14, ccy = topRow + 6;
+        for (let i = 0; i < 16; i++) {
+          const a2 = i * 0.3927 + t * (0.45 + (i % 3) * 0.12);
+          const rx = 17 + (i % 3) * 3;
+          const col = Math.round(ccx + rx * Math.cos(a2)), row = Math.round(ccy + (rx / 2) * Math.sin(a2));
+          if (col < 0 || col >= cols || row < 0 || row >= rows) continue;
+          const idx = row * cols + col;
+          if (chars[idx] !== " ") continue;
+          const tw = Math.sin(t * 3 + i * 1.7);
+          chars[idx] = FAM[i % 4][tw > 0.5 ? 0 : tw > -0.2 ? 1 : 2];
+          colors[idx] = SPC[i % 4];
+        }
+      }
+    }
+
+    // on-screen text (typewriter)
+    {
+      const shift = Math.floor(t * 6);
+      for (const tx of TEXTS) {
+        const lines = tx.text.split("\n");
+        let budget = Math.max(0, Math.floor((t - tx.start) * (tx.speed || 10)));
+        const baseRow = tx.place === "screen"
+          ? Math.round(clamp(tx.y === undefined ? 0.5 : tx.y, 0, 1) * (rows - 1)) - Math.floor((lines.length - 1) / 2)
+          : L.handRow + CAT_H + (tx.gap === undefined ? 2 : tx.gap);
+        for (let li = 0; li < lines.length && budget > 0; li++) {
+          const line = lines[li];
+          const row = baseRow + li;
+          if (row < 0 || row >= rows) { budget -= line.length; continue; }
+          const start = Math.max(0, Math.floor((cols - line.length) / 2));
+          const shown = Math.min(line.length, budget);
+          budget -= line.length;
+          for (let i = 0; i < shown; i++) {
+            if (start + i >= cols) break;
+            const idx = row * cols + start + i;
+            chars[idx] = line[i];
+            colors[idx] = tx.color === "shimmer" || !tx.color
+              ? MSG_COLORS[(i + shift) % MSG_COLORS.length] : tx.color;
+          }
+        }
       }
     }
 
@@ -524,11 +689,11 @@
     lastNow = now;
     const dt = Math.min(dtMs / 1000, 0.1); // clamps jumps after tab switches
     t += dt;
-    if (t > 3.5) updateHearts(dt);
+    updateParticles(dt);
     render(t);
   }
 
-  function replay() { t = 0; hearts = []; }
+  function replay() { t = 0; resetParticles(); }
 
   let resizeTimer = 0;
   function onResize() {
