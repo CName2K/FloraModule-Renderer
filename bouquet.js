@@ -34,7 +34,7 @@
   const FONT_FAMILY = '"JetBrains Mono", ui-monospace, Menlo, Consolas, "Courier New", monospace';
   const FONT_WEIGHT = 500;
   const COLS_PORTRAIT = 104;     // character columns on a phone held upright
-  const ROWS_LANDSCAPE = 48;    // character rows when the screen is wider than tall
+  const ROWS_LANDSCAPE = 68;    // character rows when the screen is wider than tall
   const LINE = 1.2;             // cell height as a multiple of font size
   const BLOOM_END = 8.0;        // seconds until the bloom is fully done
 
@@ -113,7 +113,7 @@
   function catRows(t) {
     const beat = Math.floor(t * 3) % 3;
     const blink = t % 3.4 > 3.25;
-    const e = blink ? "-" : "o";
+    const e = blink ? "*" : "o";
     const g = Array.from({ length: CAT_H }, () => Array(CAT_W).fill(" "));
     const put = (r, c, str) => {
       for (let i = 0; i < str.length; i++) if (c + i >= 0 && c + i < CAT_W) g[r][c + i] = str[i];
